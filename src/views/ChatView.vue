@@ -40,7 +40,8 @@ function submitMessage() {
         <el-empty style="height: 100%;">
           <template #default >
             <h2>欢迎使用国标咨询工具</h2>
-            <p>请在下方输入框输入您的问题</p>
+            <p v-if="modeSwitchRef">请在上传您的设计参数文档以进行校验</p>
+            <p v-else>请在下方输入框输入您的问题</p>
           </template>
         </el-empty>
       </div>
@@ -50,7 +51,7 @@ function submitMessage() {
         </template>
       </div>
 
-      <chatInputArea v-model:inputValue="inputValue" v-model:submitLoading="submitLoading" @submit="submitMessage"/>
+      <chatInputArea v-model:inputValue="inputValue" v-model:submitLoading="submitLoading" @submit="submitMessage" v-if="!modeSwitchRef"/>
     </div>
 
     <div class="fileUploadArea">
@@ -59,16 +60,19 @@ function submitMessage() {
       </div>
 
       <div class="uploadArea">
+        <div class="standard">
+          <h4>国家标准</h4>
+          <el-select>
 
+          </el-select>
+          <file-uploader accept_type="application/pdf" @fileUpload="(option) => {console.log(option)}"/>
+        </div>
+        <el-divider v-if="modeSwitchRef" />
+        <div class="userFile" v-if="modeSwitchRef">
+          <h4>用户文件</h4>
+          <file-uploader accept_type="application/pdf" @fileUpload="(option) => {console.log(option)}"/>
+        </div>
       </div>
-
-      <h4>国家标准</h4>
-
-      <file-uploader accept_type="application/pdf" @fileUpload="(option) => {console.log(option)}"/>
-
-      <h4 v-if="modeSwitchRef">设计参数</h4>
-
-      <file-uploader accept_type="application/plaintext" v-if="modeSwitchRef"  @fileUpload="(option) => {console.log(option)}"/>
     </div>
 
   </div>
@@ -131,10 +135,6 @@ function submitMessage() {
 
       border-radius: 6px;
       border: 1px dashed var(--el-border-color)
-    }
-
-    h4 {
-      margin: 10px 0;
     }
   }
 

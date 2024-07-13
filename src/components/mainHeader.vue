@@ -1,16 +1,21 @@
 <script lang="ts" setup>
-import {Moon, Sunny} from "@element-plus/icons-vue";
+import {Moon, Setting, Sunny} from "@element-plus/icons-vue";
 import router from "@/router";
 import {useDark} from "@vueuse/core";
+import settingDialog from "@/components/settingDialog.vue";
 
 // header switch
 const activeIndex = ref<string>('/home')
 
 // theme switch
 const isDark = useDark()
+
+// setting dialog
+const settingDialogVisible = ref<boolean>(false)
 </script>
 
 <template>
+  <settingDialog v-model:settingDialogVisible="settingDialogVisible"/>
   <el-menu
     :default-active="activeIndex"
     :ellipsis="false"
@@ -22,13 +27,12 @@ const isDark = useDark()
     <h3 class="title subTitle">Team: 无辑</h3>
 
     <div class="titleFill"/>
-    <!--      <h2>标准对比器</h2>-->
-    <div class="titleFill"/>
 
     <el-menu-item index="/home">Chat</el-menu-item>
+    <el-menu-item index="/draw">Draw</el-menu-item>
     <el-menu-item index="/about">About</el-menu-item>
 
-    <div class="titleFillMini" style="flex-grow: 1"/>
+    <div class="titleFillMini"/>
 
     <el-divider direction="vertical"/>
     <el-switch
@@ -40,6 +44,12 @@ const isDark = useDark()
       <el-option v-if="isDark" label="Light" value="light"/>
       <el-option v-else label="Dark" value="dark"/>
     </el-switch>
+    <el-divider direction="vertical"/>
+
+    <el-button text @click="() => {settingDialogVisible = true}">
+      <el-icon size="20"><Setting /></el-icon>
+    </el-button>
+
     <el-divider direction="vertical"/>
     <el-link :underline="false" href="https://github.com/LianQi-Kevin/Sky-Hackathon-10th" target="_blank">
       <img v-if="isDark" alt="github_logo" class="logo" src="@/assets/svg/github-mark-white.svg"/>
@@ -78,22 +88,22 @@ const isDark = useDark()
   }
 }
 
-@media only screen and (max-width: 620px) {
+@media only screen and (max-width: 650px) {
   .mainTitle {
     display: none;
   }
 }
 
-@media only screen and (min-width: 426px) {
+@media only screen and (min-width: 445px) {
   .titleFillMini {
     display: none;
+    flex-grow: 0;
   }
 }
 
-@media only screen and (max-width: 426px) {
+@media only screen and (max-width: 445px) {
   .title, .titleFill {
     display: none;
-    flex-grow: 0;
   }
 
   .titleFillMini {
