@@ -13,6 +13,14 @@ interface ChatMessage {
 
 const chatMessagesLists = ref<ChatMessage[]>([])
 
+// chatMessagesLists.value = [
+//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
+//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
+//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
+//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
+//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
+// ]
+
 // Prompt Input Actions
 const inputValue = ref<string>('')
 const submitLoading = ref<boolean>(false)

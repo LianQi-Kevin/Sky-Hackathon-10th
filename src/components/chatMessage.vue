@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import md from '@/markdown/markdown'
-import {Help} from "@element-plus/icons-vue";
+import {CopyDocument, Help} from "@element-plus/icons-vue";
 import CodeCard from "@/components/codeCard.vue";
-import {useThrottleFn} from "@vueuse/core";
+import {useClipboard, useThrottleFn} from "@vueuse/core";
 
 import "@/styles/github-markdown.css"
+import {ElMessage} from "element-plus";
 
 interface propsType {
   role: 'user' | 'system' | 'assistant';
@@ -47,20 +48,50 @@ function replaceCodeCard() {
     });
   }
 }
+
+const { copy, copied, isSupported } = useClipboard()
+const throttledCopy = useThrottleFn(copyContent, 500);
+function copyContent() {
+  if (isSupported) {
+    if (props.content.length === 0) {
+      ElMessage({
+        message: 'Fail to copy, content is Empty',
+        type: 'warning'
+      })
+    } else {
+      copy(props.content)
+      if(copied){
+        console.debug(`Copied to clipboard: ${props.content}`)
+      }
+    }
+  } else {
+    ElMessage({
+      message: 'Your browser does not support copying',
+      type: 'error'
+    })
+  }
+}
 </script>
 
 <template>
   <div class="flexBox">
-
     <div v-if="props.role === 'user'" class="userMessage">
       {{ props.content }}
     </div>
 
     <div v-else-if="props.role === 'assistant'" class="assistantMessage">
       <el-icon class="icon"><Help /></el-icon>
-      <article ref="codeBlocksContainer" class="markdown-body">
-        <div class="markdown" v-html="md.render(props.content)"/>
-      </article>
+      <div class="messageMainBox">
+        <article ref="codeBlocksContainer" class="markdown-body">
+          <div class="markdown" v-html="md.render(props.content)"/>
+        </article>
+
+        <div class="assistantToolBar">
+          <el-button link @click="throttledCopy">
+            <el-icon><CopyDocument /></el-icon>
+          </el-button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -109,9 +140,33 @@ function replaceCodeCard() {
       min-height: 32px;
     }
 
-    .markdown-body {
-      width: 100%;
+    .messageMainBox {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .markdown-body {
+        width: 100%;
+      }
+
+      .assistantToolBar {
+        svg {
+          display: none;
+        }
+      }
+    }
+
+    .messageMainBox:active, .messageMainBox:hover {
+      .assistantToolBar {
+        svg {
+          display: block;
+        }
+      }
     }
   }
+}
+
+.flexBox:last-child .assistantMessage .messageMainBox .assistantToolBar svg {
+  display: block;
 }
 </style>
