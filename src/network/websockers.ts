@@ -1,25 +1,36 @@
-import {basic_url} from "@/network/basic";
+import { basic_url } from '@/network/basic';
 
-export function WSS_embedding(nv_api_token: string, client_id: string, file_uuid: string, status_update: (status: string) => void) {
-    const sockets = new WebSocket(`${basic_url.replace("http://", "ws://")}/link/${client_id}/ws?token=${nv_api_token}`);
-    sockets.onopen = () => {
-        sockets.send(JSON.stringify({ type: "action", data: file_uuid }));
-        console.log("Action sent via WebSocket.");
-    }
+// 定义一个全局变量来存储 WebSocket 实例
+let globalSocket: WebSocket | null = null;
 
-    sockets.onmessage = (message) => {
-        const messageData = JSON.parse(message.toString());
-        console.log("Received from WebSocket:", messageData);
+// 初始化 WebSocket 连接的函数
+export function initializeWebSocket(
+  nv_api_token: string,
+  client_id: string,
+  onMessage: Function
+) {
+  if (!globalSocket || globalSocket.readyState === WebSocket.CLOSED) {
+    globalSocket = new WebSocket(
+      `${basic_url.replace(
+        'http://',
+        'ws://'
+      )}/link/${client_id}/ws?token=${nv_api_token}`
+    );
 
-        if (messageData.type === "embedding") {
-            if (messageData.status === 'processing') {
-                console.log('文件处理中...');
-                status_update('文件处理中...');
-            } else if (messageData.status === 'complete') {
-                console.log('文件处理完成');
-                status_update('文件处理完成');
-                // 可以在这里添加更多的逻辑，比如显示文件链接或者通知用户
-            }
-        }
-    }
+    globalSocket.onopen = () => {
+      console.log('WebSocket connection established.');
+    };
+
+    globalSocket.onmessage = (event: MessageEvent<any>) => onMessage(event);
+
+    globalSocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    globalSocket.onclose = () => {
+      console.log('WebSocket connection closed.');
+      globalSocket = null; // Reset the global socket on close
+    };
+  }
+  return globalSocket;
 }

@@ -1,10 +1,9 @@
 <script lang="ts" setup>
 import chatInputArea from "@/components/chatInputArea.vue";
 import FileUploader from "@/components/fileUploader.vue";
-import {ElMessage, ElNotification} from "element-plus";
+import {ElMessage} from "element-plus";
 import type {ApiConfigsType} from "@/components/settingDialog.vue";
-import {WSS_embedding} from "@/network/websockers";
-
+import { initializeWebSocket } from '@/network/websockers';
 
 // File Upload Actions
 const modeSwitchRef = ref<boolean>(false)
@@ -70,21 +69,16 @@ function WSS_onMessage(data: onMessageTypes) {
   switch (data.type) {
     case "embedding":
       if (data.status === "processing") {
-        ElNotification({
+        ElMessage({
           duration: 15,
-          title: 'embedding status',
-          message: '正在处理中，请稍后...',
+          message: 'embedding 正在处理中，请稍后...',
           type: 'info'
         })
-        // chatMessagesLists.value.push({role: 'system', content: '正在处理中，请稍后...'})
-
       } else {
-        ElNotification({
-          title: 'embedding status',
-          message: 'Embedding已完成',
+        ElMessage({
+          message: 'embedding 已完成',
           type: 'success'
         })
-        // chatMessagesLists.value.push({role: 'system', content: '处理完成，请查看结果'})
       }
       break;
     case "message":
@@ -96,9 +90,17 @@ function WSS_onMessage(data: onMessageTypes) {
       break;
   }
 }
+
+const ws = initializeWebSocket(
+  apiConfigs?.NVIDIA_API_KEY!,
+  apiConfigs?.client_id!,
+  WSS_onMessage
+);
 </script>
 
 <template>
+<!--  <el-button @click="WSS_onMessage({type: 'embedding', status: 'processing', problems: 'finish_info'})"></el-button>-->
+
   <div class="container">
     <div class="chatContainer">
       <div class="chatMessages" v-show="chatMessagesLists.length === 0">
@@ -152,21 +154,19 @@ function WSS_onMessage(data: onMessageTypes) {
                 })
               }
 
+              const data = JSON.stringify({
+                type: 'action1',
+                data: response.file_uuid
+              })
+
+              // start ws connect
+              ws.send(data)
+
               // update standard file
               standard_file = {
                 file_uuid: response.file_uuid,
                 filename: response.filename
               }
-
-              // start embedding
-              WSS_embedding(
-                apiConfigs?.NVIDIA_API_KEY as string,
-                apiConfigs?.client_id as string,
-                response.file_uuid as string,
-                (status) => {
-                  console.log(status)
-                }
-              )
             }"
             @on-error="(error) => {ElMessage({
               message: error.name + ': ' + error.message,
@@ -194,6 +194,14 @@ function WSS_onMessage(data: onMessageTypes) {
                 file_uuid: response.file_uuid,
                 filename: response.filename
               }
+
+              const data = JSON.stringify({
+                type: 'action1',
+                data: response.file_uuid
+              })
+
+              // start ws connect
+              ws.send(data)
             }"
             @on-error="(error) => {ElMessage({
               message: error.name + ': ' + error.message,
