@@ -12,6 +12,14 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: "/draw",
+    name: "Draw",
+    component: () => import("@/views/DrawView.vue"),
+    meta: {
+      title: "Draw"
+    }
+  },
+  {
     path: "/about",
     name: "About",
     component: () => import("@/views/AboutView.vue"),

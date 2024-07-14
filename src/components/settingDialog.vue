@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DB from "@/tools/db";
+import { nanoid } from 'nanoid'
 import type {FormInstance, FormRules} from "element-plus";
 
 const settingDialogVisible = defineModel<boolean>('settingDialogVisible', {required: true})
@@ -12,6 +13,7 @@ const API_DB = new DB("ApiKeys", "nvApi");
 
 interface ApiConfigsType {
   NVIDIA_API_KEY?: string;
+  client_id?: string;
 }
 
 const apiConfigs = reactive<ApiConfigsType>({});
@@ -20,6 +22,7 @@ const ruleFormRef = ref<FormInstance>()
 
 const rules = reactive<FormRules<ApiConfigsType>>({
   NVIDIA_API_KEY: [{required: true, message: "API Key is required", trigger: "blur"}],
+  client_id: [{required: false, message: "Client ID is required", trigger: "blur"}],
 });
 
 async function beforeClose(formEl: FormInstance | undefined) {
@@ -47,6 +50,13 @@ onMounted(() => {
         Object.assign(apiConfigs, res);
       }
     });
+
+    // 如果client_id为空, 填充默认值
+    if (!apiConfigs.client_id) {
+      const date = new Date().toLocaleDateString();
+      const nano_id = nanoid(10);
+      apiConfigs.client_id = `client_id_${date}_${nano_id}`;
+    }
   });
 });
 </script>
@@ -56,7 +66,9 @@ onMounted(() => {
       v-model="settingDialogVisible"
       title="Setting"
 
-      :before-close="() => {settingDialogVisible = false}"
+      :before-close="() => {
+        beforeClose(ruleFormRef)
+      }"
 
       align-center
       destroy-on-close
@@ -67,6 +79,13 @@ onMounted(() => {
         <el-input
             v-model="apiConfigs.NVIDIA_API_KEY"
             placeholder="Please Type NVIDIA_API_KEY Here"
+            clearable
+        />
+      </el-form-item>
+      <el-form-item label="Client ID">
+        <el-input
+            v-model="apiConfigs.client_id"
+            placeholder="Please Type client_ID Here to load history"
             clearable
         />
       </el-form-item>
