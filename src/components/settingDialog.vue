@@ -1,22 +1,16 @@
 <script setup lang="ts">
 import DB from "@/tools/db";
-import { nanoid } from 'nanoid'
 import type {FormInstance, FormRules} from "element-plus";
 
 const settingDialogVisible = defineModel<boolean>('settingDialogVisible', {required: true})
-
-const emit = defineEmits<{
-  onSubmit: [apiConfigs: ApiConfigsType]
-}>()
+const apiConfigs = defineModel<ApiConfigsType>('apiConfigs', {required: true})
 
 const API_DB = new DB("ApiKeys", "nvApi");
 
-interface ApiConfigsType {
+export interface ApiConfigsType {
   NVIDIA_API_KEY?: string;
   client_id?: string;
 }
-
-const apiConfigs = reactive<ApiConfigsType>({});
 
 const ruleFormRef = ref<FormInstance>()
 
@@ -29,36 +23,16 @@ async function beforeClose(formEl: FormInstance | undefined) {
   if (!formEl) return // 非空
   // verify the API_KEY
   await formEl.validate(async (valid) => {
-    if (valid && apiConfigs.NVIDIA_API_KEY?.startsWith("nvapi-")) {
+    if (valid && apiConfigs.value.NVIDIA_API_KEY?.startsWith("nvapi-")) {
       // 存数据库
-      await API_DB.setItem("apiConfigs", toRaw(apiConfigs));
+      await API_DB.setItem("apiConfigs", toRaw(apiConfigs.value));
       settingDialogVisible.value = false;
 
-      // 保存时回调
-      emit("onSubmit", toRaw(apiConfigs));
     } else {
       ElMessage.error("Please check the input");
     }
   });
 }
-
-onMounted(() => {
-  nextTick(() => {
-    // 检查数据库内是否存在已保存数据，更新全局变量
-    API_DB.getItem("apiConfigs").then((res) => {
-      if (res) {
-        Object.assign(apiConfigs, res);
-      }
-    });
-
-    // 如果client_id为空, 填充默认值
-    if (!apiConfigs.client_id) {
-      const date = new Date().toLocaleDateString();
-      const nano_id = nanoid(10);
-      apiConfigs.client_id = `client_id_${date}_${nano_id}`;
-    }
-  });
-});
 </script>
 
 <template>

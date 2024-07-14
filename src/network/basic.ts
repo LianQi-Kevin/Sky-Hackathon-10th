@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const basic_url: string = new URL("backend", window.location.href).toString();
+// export const basic_url: string = new URL("backend", window.location.href).toString();
+export const basic_url: string = 'http://36.150.110.74:9536'; // 本地调试用
 
 const basic_axios = axios.create({
   baseURL: basic_url,

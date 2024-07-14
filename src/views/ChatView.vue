@@ -1,9 +1,16 @@
 <script lang="ts" setup>
 import chatInputArea from "@/components/chatInputArea.vue";
 import FileUploader from "@/components/fileUploader.vue";
+import {ElMessage} from "element-plus";
+import type {ApiConfigsType} from "@/components/settingDialog.vue";
+import {WSS_embedding} from "@/network/websockers";
+
 
 // File Upload Actions
 const modeSwitchRef = ref<boolean>(false)
+const standardModeRef = ref<boolean>(false)
+
+const apiConfigs = inject<ApiConfigsType>('apiConfigs')
 
 // Chat Messages Tools
 interface ChatMessage {
@@ -12,14 +19,6 @@ interface ChatMessage {
 }
 
 const chatMessagesLists = ref<ChatMessage[]>([])
-
-// chatMessagesLists.value = [
-//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
-//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
-//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
-//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
-//   {role: 'assistant', content: '欢迎使用国标咨询工具'},
-// ]
 
 // Prompt Input Actions
 const inputValue = ref<string>('')
@@ -39,6 +38,27 @@ function submitMessage() {
     }
   })
 }
+
+
+// 国标及设计参数文件 todo: 临时能用
+interface fileInfo {
+  file_uuid: string;
+  filename: string;
+}
+
+interface fileUploadSuccessResponse extends fileInfo{
+  message: string
+  client_id: string
+}
+
+const standard_file = ref<fileInfo>({
+  file_uuid: '',
+  filename: ''
+})
+const parameter_file = ref<fileInfo>({
+  file_uuid: '',
+  filename: ''
+})
 </script>
 
 <template>
@@ -59,7 +79,8 @@ function submitMessage() {
         </template>
       </div>
 
-      <chatInputArea v-model:inputValue="inputValue" v-model:submitLoading="submitLoading" @submit="submitMessage" v-if="!modeSwitchRef"/>
+      <el-button v-if="modeSwitchRef" round style="padding: 10px;margin: 0 10px 10px 20px;">开始对比</el-button>
+      <chatInputArea v-model:inputValue="inputValue" v-model:submitLoading="submitLoading" @submit="submitMessage" v-else/>
     </div>
 
     <div class="fileUploadArea">
@@ -69,16 +90,79 @@ function submitMessage() {
 
       <div class="uploadArea">
         <div class="standard">
-          <h4>国家标准</h4>
-          <el-select>
+          <div class="standard__title" style="display: flex; flex-direction: row; justify-content: space-between; align-items: baseline">
+            <h4>国家标准</h4>
+            <el-switch v-model="standardModeRef" active-text="选择现有标准" inactive-text="上传新标准" size="small" disabled/>
+          </div>
+          <el-select
+            v-show="standardModeRef"
+          >
 
           </el-select>
-          <file-uploader accept_type="application/pdf" @fileUpload="(option) => {console.log(option)}"/>
+
+          <file-uploader
+            v-show="!standardModeRef"
+
+            :accept_type="'application/pdf'"
+            :auto-upload="true"
+            :process="true"
+            @on-success="(response: fileUploadSuccessResponse) => {
+              console.log(response)
+              if (response.message) {
+                ElMessage({
+                  message: response.message,
+                  type: 'success'
+                })
+              }
+
+              // update standard file
+              standard_file = {
+                file_uuid: response.file_uuid,
+                filename: response.filename
+              }
+
+              // start embedding
+              WSS_embedding(
+                apiConfigs?.NVIDIA_API_KEY as string,
+                apiConfigs?.client_id as string,
+                response.file_uuid as string,
+                (status) => {
+                  console.log(status)
+                }
+              )
+            }"
+            @on-error="(error) => {ElMessage({
+              message: error.name + ': ' + error.message,
+              type: 'error'
+            })}"
+          />
         </div>
         <el-divider v-if="modeSwitchRef" />
         <div class="userFile" v-if="modeSwitchRef">
           <h4>用户文件</h4>
-          <file-uploader accept_type="application/pdf" @fileUpload="(option) => {console.log(option)}"/>
+          <file-uploader
+            :accept_type="'application/pdf,.md,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document'"
+            :process="false"
+            @on-success="(response:  fileUploadSuccessResponse) => {
+              console.log(response)
+              if (response.message) {
+                ElMessage({
+                  message: response.message,
+                  type: 'success'
+                })
+              }
+
+              // update parameter file
+              parameter_file = {
+                file_uuid: response.file_uuid,
+                filename: response.filename
+              }
+            }"
+            @on-error="(error) => {ElMessage({
+              message: error.name + ': ' + error.message,
+              type: 'error'
+            })}"
+          />
         </div>
       </div>
     </div>
@@ -131,7 +215,7 @@ function submitMessage() {
 
   .fileUploadArea {
     width: 100%;
-    max-width: 250px;
+    max-width: 260px;
 
     display: flex;
     flex-direction: column;

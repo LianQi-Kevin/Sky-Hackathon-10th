@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import type {ApiConfigsType} from "@/components/settingDialog.vue";
 
-
-// const apiConfigs =
+const apiConfigs = inject<ApiConfigsType>('apiConfigs')
 </script>
 
 <template>

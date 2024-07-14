@@ -3,6 +3,7 @@ import {Moon, Setting, Sunny} from "@element-plus/icons-vue";
 import router from "@/router";
 import {useDark} from "@vueuse/core";
 import settingDialog from "@/components/settingDialog.vue";
+import type {ApiConfigsType} from "@/components/settingDialog.vue";
 
 // header switch
 const activeIndex = ref<string>('/home')
@@ -12,10 +13,14 @@ const isDark = useDark()
 
 // setting dialog
 const settingDialogVisible = ref<boolean>(false)
+
+// const apiConfigs = defineModel<ApiConfigsType>('apiConfigs', {required: true})
+const apiConfigs = inject<ApiConfigsType>('apiConfigs')
+
 </script>
 
 <template>
-  <settingDialog v-model:settingDialogVisible="settingDialogVisible"/>
+  <settingDialog v-model:settingDialogVisible="settingDialogVisible" :api-configs="apiConfigs as ApiConfigsType"/>
   <el-menu
     :default-active="activeIndex"
     :ellipsis="false"
@@ -29,7 +34,7 @@ const settingDialogVisible = ref<boolean>(false)
     <div class="titleFill"/>
 
     <el-menu-item index="/home">Chat</el-menu-item>
-    <el-menu-item index="/draw">Draw</el-menu-item>
+<!--    <el-menu-item index="/draw">Draw</el-menu-item>-->
     <el-menu-item index="/about">About</el-menu-item>
 
     <div class="titleFillMini"/>

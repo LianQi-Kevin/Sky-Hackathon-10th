@@ -32,11 +32,11 @@ const markdownString: string = '### 第十届 Sky Hackathon 参赛项目书\n' +
   '\n' +
   '对于用户提问功能，我们采用如下流程进行生成（为了方便理解，隐去了langchain document loader）：\n' +
   '\n' +
-  '![用户提问流程图.jpg](https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg)\n' +
+  '![用户提问流程图.jpg](../../public/img/ee4ff5127df19697a200805ad3eebf4.jpg)\n' +
   '\n' +
   '针对产品设计检查功能，我们采用如下流程进行生成：\n' +
   '\n' +
-  '![产品设计检查流程图.jpg](https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg)\n' +
+  '![产品设计检查流程图.jpg](../../public/img/32be2b3d79dcb4ec6bf107b125318bf.jpg)\n' +
   '\n' +
   '其中用户提问功能，是标准的RAG应用，即从用户问题中匹配到最与之相关的文档内容，与用户问题一起传入大模型，生成回答。\n' +
   '\n' +
