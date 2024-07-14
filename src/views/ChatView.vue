@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import chatInputArea from "@/components/chatInputArea.vue";
 import FileUploader from "@/components/fileUploader.vue";
-import {ElMessage} from "element-plus";
+import {ElMessage, ElNotification} from "element-plus";
 import type {ApiConfigsType} from "@/components/settingDialog.vue";
 import {WSS_embedding} from "@/network/websockers";
 
@@ -59,6 +59,43 @@ const parameter_file = ref<fileInfo>({
   file_uuid: '',
   filename: ''
 })
+
+interface onMessageTypes {
+  type: "embedding" | "message";
+  status: "processing" | "complete";
+  problems?: string
+}
+
+function WSS_onMessage(data: onMessageTypes) {
+  switch (data.type) {
+    case "embedding":
+      if (data.status === "processing") {
+        ElNotification({
+          duration: 15,
+          title: 'embedding status',
+          message: '正在处理中，请稍后...',
+          type: 'info'
+        })
+        // chatMessagesLists.value.push({role: 'system', content: '正在处理中，请稍后...'})
+
+      } else {
+        ElNotification({
+          title: 'embedding status',
+          message: 'Embedding已完成',
+          type: 'success'
+        })
+        // chatMessagesLists.value.push({role: 'system', content: '处理完成，请查看结果'})
+      }
+      break;
+    case "message":
+      if (data.status === "processing") {
+        chatMessagesLists.value.push({role: 'assistant', content: '正在处理中，请稍后...'})
+      } else {
+        chatMessagesLists.value[chatMessagesLists.value.length - 1] = ({role: 'assistant', content: data.problems as string})
+      }
+      break;
+  }
+}
 </script>
 
 <template>
