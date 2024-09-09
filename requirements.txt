@@ -1,0 +1,4 @@
+# fastapi requirements
+fastapi>=0.112.0,<0.113.0
+uvicorn[standard]
+pydantic>=2.9.0,<3.0.0
