@@ -2,6 +2,7 @@ from typing import List
 
 # file upload cache path
 CACHE_PATH: str = "./cache_folder"
+STANDARD_PATH: str = "./standard_folder"
 
 # RAG
 # text spliter

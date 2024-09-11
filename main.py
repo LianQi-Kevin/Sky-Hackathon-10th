@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from backend.lifespanDB import lifespan
-from backend.routers import file_router
+from backend.routers import file_router, invoke_router
 from backend.tools import log_set
 
 # init logging
@@ -19,6 +19,7 @@ log_set(logging.DEBUG)
 # init Fastapi
 app = FastAPI(lifespan=lifespan)
 app.include_router(file_router)
+app.include_router(invoke_router)
 
 
 # load vue dist

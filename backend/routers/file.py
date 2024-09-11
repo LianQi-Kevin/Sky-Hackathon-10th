@@ -1,8 +1,10 @@
 import os
 import hashlib
 import uuid
+from typing import List
 
-from fastapi import APIRouter, UploadFile, File, Form, WebSocket
+from fastapi import APIRouter, UploadFile, File, Form, WebSocket, Depends
+from langchain_core.documents import Document
 from sqlmodel import Session, select
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -18,8 +20,8 @@ from ..exceptions import (
     file_notFound_ws_exception,
     file_type_exception
 )
-from ..database import UploadFileDB, FileEmbeddedResponse
-from ..lifespanDB import CACHE_DB
+from ..types import UploadFileDB, FileEmbeddedResponse
+from ..lifespanDB import get_cache_db
 from ..basic_configs import CACHE_PATH, CHUNK_SIZE, CHUNK_OVERLAP, SEPARATORS
 
 app_router = APIRouter(prefix="/api/file", tags=["file"])
@@ -27,7 +29,7 @@ app_router = APIRouter(prefix="/api/file", tags=["file"])
 
 # /api/file/
 @app_router.post("/", response_model=UploadFileDB)
-async def upload_file(file: UploadFile = File(...), file_md5: str = Form(...)):
+async def upload_file(file: UploadFile = File(...), file_md5: str = Form(...), cache_db = Depends(get_cache_db)):
     # verify md5
     file_raw = file.file.read()
     file_md5_ = hashlib.md5(file_raw).hexdigest()
@@ -35,21 +37,21 @@ async def upload_file(file: UploadFile = File(...), file_md5: str = Form(...)):
         raise file_md5_exception
 
     # 查找md5值是否已存在
-    with Session(CACHE_DB) as session:
+    with Session(cache_db) as session:
         statement = select(UploadFileDB).where(UploadFileDB.md5_code == file_md5)
         result: UploadFileDB = session.exec(statement).first()
 
     if not result:
-        session_tag: UploadFileDB = UploadFileDB(md5_code=file_md5, file_type=os.path.splitext(file.filename)[1])
+        session_tag: UploadFileDB = UploadFileDB(md5_code=file_md5, file_suffix=os.path.splitext(file.filename)[1])
         # write_db
-        with Session(CACHE_DB) as session:
+        with Session(cache_db) as session:
             session.add(session_tag)
             session.commit()
             session.refresh(session_tag)
         result: UploadFileDB = session_tag
 
     # write_file
-    target_file_path = os.path.join(CACHE_PATH, result.md5_code, f"{result.md5_code}{result.file_type}")
+    target_file_path = os.path.join(CACHE_PATH, result.md5_code, f"{result.md5_code}{result.file_suffix}")
     if not os.path.exists(target_file_path):
         os.makedirs(os.path.dirname(target_file_path), exist_ok=True)
         with open(target_file_path, "wb") as f:
@@ -66,20 +68,21 @@ async def embedded_file(
         file_id: uuid.UUID,
         file_md5: str,
         nv_api_key: str,
+        cache_db = Depends(get_cache_db)
 ):
     await websocket.accept()
     # get file from db
-    with Session(CACHE_DB) as session:
+    with Session(cache_db) as session:
         statement = select(UploadFileDB).where(UploadFileDB.id == file_id)
         result: UploadFileDB = session.exec(statement).first()
     if not result:
         raise file_notFound_ws_exception
 
     # verify file exists
-    file_path = os.path.join(CACHE_PATH, result.md5_code, f"{result.md5_code}{result.file_type}")
+    file_path = os.path.join(CACHE_PATH, result.md5_code, f"{result.md5_code}{result.file_suffix}")
     if not os.path.exists(file_path):
         # remove item in db
-        with Session(CACHE_DB) as session:
+        with Session(cache_db) as session:
             session.delete(result)
             session.commit()
         raise file_notFound_ws_exception
@@ -104,13 +107,12 @@ async def embedded_file(
             await websocket.close()
             return
 
-    # verify file type (.pdf/.md)
+    # verify file type (.pdf/.md) and get file loader
     # todo: support more file type
-    if result.file_type not in [".pdf", ".md", ".txt", ".docx", ".doc"]:
-        raise file_type_exception
+    doc = file_loader(file_path)
 
     # set status to embedding
-    with Session(CACHE_DB) as session:
+    with Session(cache_db) as session:
         statement = select(UploadFileDB).where(UploadFileDB.id == file_id)
         result: UploadFileDB = session.exec(statement).first()
         result.embedded_status = "embedding"
@@ -125,18 +127,6 @@ async def embedded_file(
     # file Loader
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP,
                                                    separators=SEPARATORS)
-    # todo: support more file type
-    if result.file_type == ".pdf":
-        loader = PyPDFLoader(file_path)
-    elif result.file_type == ".md":
-        loader = UnstructuredMarkdownLoader(file_path)
-    elif result.file_type == ".txt":
-        loader = TextLoader(file_path)
-    elif result.file_type == ".docx" or result.file_type == ".doc":
-        loader = Docx2txtLoader(file_path)
-    else:
-        raise file_type_exception
-    doc = loader.load()
 
     # doc spliter
     doc_chunks = text_splitter.split_documents(doc)
@@ -147,7 +137,7 @@ async def embedded_file(
     standard_store.save_local(folder_path=os.path.join(CACHE_PATH, result.md5_code), index_name=result.md5_code)
 
     # update DB
-    with Session(CACHE_DB) as session:
+    with Session(cache_db) as session:
         statement = select(UploadFileDB).where(UploadFileDB.id == file_id)
         result: UploadFileDB = session.exec(statement).first()
         result.embedded_status = "embedded"
@@ -163,4 +153,40 @@ async def embedded_file(
     await websocket.close()
 
 
+# get standard file list
+# @app_router.get("/standard")
+# async def get_standard_file_list():
+#     with Session(CACHE_DB) as session:
+#         statement = select(UploadFileDB).where(UploadFileDB.file_type == "STANDARD")
+#         result: UploadFileDB = session.exec(statement).all()
+#     return result
 
+
+# file loader
+def file_loader(file_path: str) -> List[Document]:
+    if file_path.endswith(".pdf"):
+        loader = PyPDFLoader(file_path)
+    elif file_path.endswith(".md"):
+        loader = UnstructuredMarkdownLoader(file_path)
+    elif file_path.endswith(".txt"):
+        loader = TextLoader(file_path)
+    elif file_path.endswith(".docx") or file_path.endswith(".doc"):
+        loader = Docx2txtLoader(file_path)
+    else:
+        raise file_type_exception
+    return loader.load()
+
+
+# verify file exists
+def verify_file_exists(file_id: uuid.UUID, file_md5: str) -> UploadFileDB:
+    with Session(get_cache_db()) as session:
+        statement = select(UploadFileDB).where(UploadFileDB.id == file_id)
+        result: UploadFileDB = session.exec(statement).first()
+    if not result:
+        return file_notFound_ws_exception
+    if result.md5_code != file_md5:
+        return file_md5_ws_exception
+    file_path = os.path.join(CACHE_PATH, result.md5_code, f"{result.md5_code}{result.file_suffix}")
+    if not os.path.exists(file_path):
+        return file_notFound_ws_exception
+    return result
