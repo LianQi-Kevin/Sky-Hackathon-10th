@@ -199,10 +199,10 @@ def verify_file_exists(file_id: uuid.UUID, file_md5: str) -> UploadFileDB:
         statement = select(UploadFileDB).where(UploadFileDB.id == file_id)
         result: UploadFileDB = session.exec(statement).first()
     if not result:
-        return file_notFound_ws_exception
+        raise file_notFound_ws_exception
     if result.md5_code != file_md5:
-        return file_md5_ws_exception
+        raise file_md5_ws_exception
     file_path = os.path.join(CACHE_PATH, result.md5_code, f"{result.md5_code}{result.file_suffix}")
     if not os.path.exists(file_path):
-        return file_notFound_ws_exception
+        raise file_notFound_ws_exception
     return result
