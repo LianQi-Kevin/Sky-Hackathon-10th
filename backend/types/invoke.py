@@ -9,5 +9,5 @@ from pydantic import BaseModel, Field
 # invoke response
 class InvokeResponse(BaseModel):
     status: Literal["verifying", "loading", "extracting", "retrieving", "checking", "summarizing", "querying", "success", "field"]
-    message: Optional[str] = Field(default=None, description="message")
-    result: Optional[str] = Field(default=None, description="result")
+    message: Optional[str] = Field(default="", description="message")
+    result: Optional[str] = Field(default="", description="result")

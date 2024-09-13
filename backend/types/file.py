@@ -21,6 +21,6 @@ class UploadFileDB(UploadFile, table=True):
 
 # file embedded response
 class FileEmbeddedResponse(BaseModel):
-    status: Literal["verified", "success", "embedding", "field"]
-    data: UploadFile
-    message: str
+    status: Literal["verifying", "verified", "success", "embedding", "field"]
+    data: Optional[UploadFile] = Field(default=None, description="file data")
+    message: Optional[str] = Field(default="", description="message")
