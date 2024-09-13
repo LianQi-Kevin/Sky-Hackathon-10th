@@ -13,7 +13,7 @@ file_notEmbedded_ws_exception = WebSocketException(
 )
 
 # nvapi verify failed
-nvapi_verify_failed_exception = WebSocketException(
+nvapi_verify_failed_ws_exception = WebSocketException(
     code=status.WS_1008_POLICY_VIOLATION,
     reason="nv_api_key verify failed"
 )
