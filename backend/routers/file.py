@@ -185,7 +185,7 @@ def file_loader(file_path: str) -> List[Document]:
     elif file_path.endswith((".md", ".markdown")):
         loader = UnstructuredMarkdownLoader(file_path)
     elif file_path.endswith((".txt", ".text")):
-        loader = TextLoader(file_path)
+        loader = TextLoader(file_path, encoding="utf-8")
     elif file_path.endswith((".doc", ".docx")):
         loader = Docx2txtLoader(file_path)
     else:
