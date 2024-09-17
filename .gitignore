@@ -1,7 +1,9 @@
 .idea
 venv
-dist
 test
 cache_folder
 standard_folder
 /Sky-Hackathon-10th.zip
+dist/*
+!.gitkeep
+__pycache__
