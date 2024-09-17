@@ -1,4 +1,19 @@
+# Langchain requirements
+langchain
+langchain_core
+langchain_community
+langchain_nvidia_ai_endpoints
+faiss-cpu
+pypdf
+unstructured
+Markdown
+lxml
+
 # fastapi requirements
 fastapi>=0.112.0,<0.113.0
-uvicorn[standard]
+uvicorn[standard]~=0.30.6
 pydantic>=2.9.0,<3.0.0
+sqlmodel
+sqlalchemy
+python-multipart
+websockets
